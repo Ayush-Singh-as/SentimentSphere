@@ -1,6 +1,6 @@
 # SentimentSphere
 
-*SentimentSphere* is a multimodal real-time emotion recognition system that integrates three powerful models to understand and classify human emotions based on *visual*, *textual*, and *speech* inputs.
+*SentimentSphere* is a multimodal real-time emotion recognition system that integrates three powerful models to understand and classify human emotions based on *visual*, *textual*, and *speech* inputs..
 
 ---
 
