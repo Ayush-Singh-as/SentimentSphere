@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project is developed as part of a DC credit initiative and includes:
+This project is developed as a part of a DC credit initiative and includes:
 
 ### 1. *Visual Emotion Recognition (CNN)*
 - Captures live webcam feed.
