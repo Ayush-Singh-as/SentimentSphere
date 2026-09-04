@@ -150,6 +150,14 @@ clean:  ## Remove caches and build output (leaves data/ and artifacts/ alone)
 .PHONY: repo-size
 repo-size:  ## Show git and working-tree size (regression check on repo hygiene)
 	@echo ".git         : $$(du -sh .git | cut -f1)"
-	@echo "working tree : $$(du -sh --exclude=.git . | cut -f1)"
+	@echo "source       : $$(du -sh --exclude=.git --exclude=.venv --exclude=data --exclude=artifacts --exclude='.*_cache' . | cut -f1)  (excl. .venv, data/, artifacts/, caches)"
+	@echo "data/        : $$(du -sh data 2>/dev/null | cut -f1 || echo 'absent')  (untracked — run 'make data')"
+	@git count-objects -vH | awk -F': ' \
+	  '/^size-pack/ {printf "objects      : %s packed\n", $$2} \
+	   /^size-garbage/ {g=$$2} \
+	   /^garbage/ {n=$$2} \
+	   END {if (n+0 > 0) printf "GARBAGE      : %s in %d orphaned file(s) — `rm .git/objects/pack/tmp_pack_*` after checking no gc is running\n", g, n}'
 	@echo "largest tracked blobs:"
-	@git ls-tree -r -l HEAD | sort -k4 -rn | head -5 | awk '{printf "  %10d  %s\n", $$4, $$5}'
+	@git ls-tree -r -l HEAD | awk -F'\t' \
+	  '{split($$1, f, /[ \t]+/); printf "%d\t%s\n", f[4], $$2}' \
+	  | sort -rn | head -5 | awk -F'\t' '{printf "  %6.1f MB  %s\n", $$1/1048576, $$2}'
