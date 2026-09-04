@@ -1,0 +1,79 @@
+# Run: make install  (installs these hooks)
+#      uv run pre-commit run --all-files
+#
+# legacy/ is excluded from every code hook: it is preserved v1 evidence, and
+# reformatting it would destroy the thing it is being kept to document.
+
+# Deliberately `python3`, not a pinned minor: hook environments are tooling, not
+# the runtime under test. Pinning python3.11 here breaks anyone whose only
+# interpreter is 3.12 (CI covers both via the pytest matrix instead).
+default_language_version:
+  python: python3
+
+# `data/` is deliberately NOT in this list. Excluding it globally would also
+# exempt it from check-added-large-files, which is the one hook that most needs
+# to see it — that is exactly how 274 MB of wav files got committed. The
+# text-rewriting hooks opt out of data/ individually instead.
+exclude: '^(legacy/|artifacts/)'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^data/|\.(md|csv)$'
+      - id: end-of-file-fixer
+        exclude: '^data/'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: '^data/'
+      - id: detect-private-key
+      # The v1 repo committed 274 MB of wav files. This is the guardrail.
+      #
+      # One allowlisted exception: the 3.1 MB text aggregate. Tracking it means
+      # `make eval-baseline` reproduces the audit's 71.55 % on a fresh clone with
+      # no credentials and no downloads, which is worth 3 MB. It is allowlisted
+      # by exact path rather than by raising the threshold, so the exception
+      # stays visible and a second one has to be argued for. (legacy/ also holds
+      # two oversized evidence files, but the top-level exclude already covers
+      # it, and it is a frozen archive.) Keep in sync with the same allowlist in
+      # .github/workflows/ci.yml.
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+        exclude: '^data/raw/text_emotion_aggregate\.csv$'
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # mypy runs in the project environment, not an isolated pre-commit venv, so
+  # that this hook and CI's `uv run mypy src` are literally the same command.
+  # The mirrors-mypy hook would need every typed dependency mirrored into
+  # additional_dependencies and would silently drift out of sync — missing
+  # `typer` alone turns every CLI command into an "untyped decorator" error.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict, src/)
+        entry: uv run mypy
+        language: system
+        types: [python]
+        files: ^src/
+        pass_filenames: false
+        args: [src]
+
+  # Notebook outputs are what made four copies of one notebook cost 9.5 MB of
+  # history. Outputs are stripped on commit from here on.
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+        files: ^notebooks/.*\.ipynb$

@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONHASHSEED: "1337"
+
+jobs:
+  quality:
+    name: lint + types + tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Lint
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+
+      - name: Type-check (strict on src/)
+        # mypy targets 3.12 (see [tool.mypy] in pyproject.toml for why), so
+        # running it once is sufficient; tests still cover both versions.
+        if: matrix.python-version == '3.12'
+        run: uv run mypy src
+
+      - name: Tests
+        run: |
+          uv run pytest \
+            -m "not needs_data and not needs_artifacts and not gpu" \
+            --cov --cov-report=xml --cov-report=term-missing
+
+      - name: Smoke-test the CLI
+        run: |
+          uv run sphere version
+          uv run sphere labels
+          uv run sphere labels --source tess
+          uv run sphere info --json
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  hygiene:
+    name: repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # v1 accumulated 274 MB of committed audio and a 16 MB model file. These
+      # two checks are why that cannot happen again.
+      - name: Reject large blobs
+        run: |
+          LIMIT=$((2 * 1024 * 1024))
+          # Two exemptions, both narrow and both deliberate:
+          #
+          #  legacy/  is a frozen archive. Nothing is ever added to it, so it
+          #           cannot be a source of new bloat. It holds two oversized
+          #           files that are the audit's primary evidence: the leaked
+          #           TESS notebook (2.5 MB of saved outputs proving the 100 %
+          #           claim) and the 3.0 MB vision report PDF.
+          #
+          #  the text aggregate  is 3.1 MB and tracked so that
+          #           `make eval-baseline` reproduces the audit's 71.55 % on a
+          #           fresh clone with no credentials and no downloads.
+          #
+          # Exempting by exact path rather than raising LIMIT keeps both visible
+          # and forces a third entry to be argued for. Mirrors the allowlist in
+          # .pre-commit-config.yaml.
+          BIG=$(git ls-tree -r -l HEAD | awk -F'\t' -v lim="$LIMIT" '
+            { split($1, f, /[ \t]+/); size = f[4]; path = $2 }
+            size > lim \
+              && path !~ /^legacy\// \
+              && path != "data/raw/text_emotion_aggregate.csv" {
+                printf "  %.1f MB  %s\n", size / 1048576, path
+              }')
+          if [ -n "$BIG" ]; then
+            echo "::error::files over 2 MB are tracked; datasets and weights belong on the HF Hub"
+            echo "$BIG"
+            exit 1
+          fi
+          echo "no oversized tracked files outside the allowlist"
+
+      - name: Reject model weights and datasets in git
+        run: |
+          BAD=$(git ls-files | grep -Ei '\.(h5|keras|pkl|pt|pth|ckpt|onnx|safetensors|tflite)$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::model weights must not be tracked; publish to the HF Hub instead"
+            echo "$BAD"
+            exit 1
+          fi
+          echo "no tracked model weights"
+
+      - name: Reject notebook outputs outside legacy/
+        run: |
+          BAD=$(git ls-files 'notebooks/*.ipynb' | xargs -r grep -l '"output_type"' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::notebook outputs committed; nbstripout should have run"
+            echo "$BAD"
+            exit 1
+          fi
+          echo "notebooks are clean"
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - run: uv run pre-commit run --all-files --show-diff-on-failure
