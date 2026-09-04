@@ -1,0 +1,30 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Notebooks: strip outputs via pre-commit (nbstripout); treat as text for diffs
+*.ipynb text
+
+# Binary — never diff, never merge
+*.h5      binary
+*.keras   binary
+*.pkl     binary
+*.onnx    binary
+*.pt      binary
+*.pth     binary
+*.safetensors binary
+*.wav     binary
+*.mp3     binary
+*.mp4     binary
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+
+# Keep legacy v1 code out of language statistics — it is preserved evidence,
+# not maintained source.
+legacy/** linguist-vendored
+
+# `-text` disables all EOL conversion for legacy/. Three v1 files were authored
+# on Windows and are CRLF; normalising them to LF would rewrite 444 lines of
+# app_streamlit.py and stop the archive being a byte-exact record of what
+# shipped. Evidence stays as-found, warts and line endings included.
+legacy/** -text

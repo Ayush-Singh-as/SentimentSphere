@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2025-2026 Ayush Singh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+NOTE ON DATASETS AND PRETRAINED WEIGHTS
+
+This license covers the source code in this repository only. It does not
+extend to third-party datasets or pretrained model weights, each of which
+carries its own terms:
+
+  - FER-2013            (Kaggle competition terms)
+  - TESS                (CC BY-NC-SA 4.0 — non-commercial)
+  - RAVDESS             (CC BY-NA-SC 4.0 — non-commercial)
+  - CREMA-D             (Open Database License)
+  - SAVEE               (research use, registration required)
+  - MELD                (GPL-3.0)
+  - GloVe               (Public Domain Dedication and License)
+  - DeBERTa / WavLM     (MIT, Microsoft)
+
+Several of these are non-commercial. Any model trained on them inherits that
+restriction. See docs/datasets.md for provenance and per-dataset terms.
+
+Code under legacy/v1/ includes work adapted from a third-party repository
+(MITESHPUTHRANNEU/Speech-Emotion-Analyzer); it is retained for audit and
+provenance purposes and is documented as such in legacy/v1/README.md.

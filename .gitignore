@@ -1,0 +1,61 @@
+# ---- data & model artifacts (never in git; fetched via `make data` / HF Hub) ----
+data/*
+!data/raw/
+data/raw/*
+!data/raw/text_emotion_aggregate.csv
+!data/raw/.gitkeep
+artifacts/
+reports/**/*.png
+reports/**/*.pdf
+wandb/
+mlruns/
+outputs/
+checkpoints/
+*.h5
+*.keras
+*.pkl
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.tflite
+*.safetensors
+*.wav
+*.mp3
+*.mp4
+*.webm
+!legacy/v1/speech/test_audios/*.wav
+!tests/fixtures/**
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-version
+
+# ---- tooling caches ----
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# ---- editors / os ----
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# ---- secrets ----
+.env
+.env.*
+!.env.example
+kaggle.json
+*.pem
