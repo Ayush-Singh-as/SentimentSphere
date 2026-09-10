@@ -86,6 +86,10 @@ jobs:
       - name: Confirm the frozen manifest was not modified
         run: git diff --exit-code -- manifests/
 
+      - name: Build the docs
+        if: matrix.python-version == '3.12'
+        run: uv run mkdocs build --strict
+
       - name: Upload coverage
         if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4

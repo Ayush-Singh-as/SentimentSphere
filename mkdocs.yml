@@ -1,0 +1,46 @@
+site_name: SentimentSphere
+site_description: Calibrated multimodal emotion recognition, rebuilt from an audited coursework project.
+repo_url: https://github.com/Ayush-Singh-as/SentimentSphere
+edit_uri: ""
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle: { icon: material/weather-night, name: Dark mode }
+    - scheme: slate
+      primary: indigo
+      toggle: { icon: material/weather-sunny, name: Light mode }
+
+nav:
+  - Overview: index.md
+  - The v1 audit: audit.md
+  - Model card — text: model-card-text.md
+  - Decisions: decisions.md
+  - Reproducing: reproducing.md
+  - Owner setup: deployment-setup.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc: { permalink: true }
+  - pymdownx.superfences
+  - pymdownx.details
+
+plugins:
+  - search
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  # audit.md links to source files (notebooks, legacy apps, CI config) that are
+  # deliberately not doc pages. Those links resolve on GitHub, which is where a
+  # reader following an evidence citation wants to land. Rewriting them to
+  # nothing would cost more than it buys.
+  unrecognized_links: ignore
+  links:
+    not_found: ignore
