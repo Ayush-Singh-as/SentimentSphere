@@ -40,16 +40,16 @@ def _git(*args: str) -> str | None:
 
 def git_sha(short: bool = False) -> str | None:
     """Current commit SHA, or None outside a git checkout."""
-    return _git("rev-parse", "--short" if short else "HEAD")
+    return _git("rev-parse", "--short", "HEAD") if short else _git("rev-parse", "HEAD")
 
 
 def git_is_dirty() -> bool | None:
-    """True if tracked files differ from HEAD.
+    """True if tracked or untracked (non-ignored) files differ from HEAD.
 
     A dirty tree means the recorded SHA does not fully describe the code that
     ran, so published numbers should come from a clean tree.
     """
-    status = _git("status", "--porcelain", "--untracked-files=no")
+    status = _git("status", "--porcelain", "--untracked-files=normal")
     return None if status is None else bool(status)
 
 
@@ -69,6 +69,8 @@ def hash_file(path: str | Path, chunk_size: int = 1 << 20) -> str:
     Used to pin dataset and weight files, so a silently-swapped artifact is
     detectable rather than mysterious.
     """
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be positive")
     digest = hashlib.sha256()
     with Path(path).open("rb") as fh:
         while chunk := fh.read(chunk_size):
@@ -101,6 +103,14 @@ _TRACKED_PACKAGES = (
     "librosa",
     "onnxruntime",
     "tensorflow",
+    "tensorflow-cpu",
+    "tf-keras",
+    "scipy",
+    "soundfile",
+    "neattext",
+    "pillow",
+    "fastapi",
+    "gradio",
 )
 
 

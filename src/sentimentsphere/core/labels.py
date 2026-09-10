@@ -253,6 +253,8 @@ def to_index(label: str | Emotion) -> int:
 
 def from_index(index: int) -> Emotion:
     """Index in a probability vector -> the canonical label it denotes."""
+    if not 0 <= index < NUM_CLASSES:
+        raise IndexError(f"index {index} out of range for {NUM_CLASSES} classes")
     try:
         return Emotion(CANONICAL[index])
     except IndexError:

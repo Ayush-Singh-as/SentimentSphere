@@ -14,11 +14,32 @@ from __future__ import annotations
 
 import os
 import random
+import subprocess
+import sys
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 
 DEFAULT_SEED = 1337
+
+
+@lru_cache(maxsize=16)
+def _hash_seed_matches(seed: int) -> bool:
+    """Compare actual hashing with a fresh interpreter, not a mutable env claim."""
+    probe = "SentimentSphere hash-seed verification"
+    try:
+        child = subprocess.run(
+            [sys.executable, "-c", f"print(hash({probe!r}))"],
+            env={**os.environ, "PYTHONHASHSEED": str(seed)},
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+        )
+        return int(child.stdout.strip()) == hash(probe)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,8 +71,12 @@ def seed_everything(seed: int = DEFAULT_SEED, *, deterministic: bool = True) -> 
         current process; the ``Makefile`` exports it so that subprocess-launched
         runs get it for real. The returned report says which case applied.
     """
-    hashseed_already_set = os.environ.get("PYTHONHASHSEED") == str(seed)
+    if not 0 <= seed < 2**32:
+        raise ValueError("seed must be in [0, 2**32)")
+    hashseed_already_set = _hash_seed_matches(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
+    if deterministic:
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 
     random.seed(seed)
     np.random.seed(seed)  # noqa: NPY002 - legacy global seed needed for third-party libs
@@ -68,15 +93,10 @@ def seed_everything(seed: int = DEFAULT_SEED, *, deterministic: bool = True) -> 
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
             cuda_seeded = True
-        if deterministic:
-            # cuBLAS needs this env var set before the first CUDA context to make
-            # matmuls reproducible; harmless if CUDA is absent.
-            os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
-            # warn_only: a handful of ops have no deterministic implementation.
-            # Warning beats crashing a 6-hour fine-tune at hour 5.
-            torch.use_deterministic_algorithms(True, warn_only=True)
+        torch.backends.cudnn.deterministic = deterministic
+        torch.backends.cudnn.benchmark = not deterministic
+        # Published deterministic runs fail if an operation cannot meet the contract.
+        torch.use_deterministic_algorithms(deterministic)
 
     return SeedReport(
         seed=seed,
@@ -95,6 +115,7 @@ def worker_init_fn(worker_id: int) -> None:
     """
     import torch
 
+    # Torch already includes worker_id in initial_seed; adding it twice also risks overflow.
     base = torch.initial_seed() % 2**32
-    np.random.seed(base + worker_id)  # noqa: NPY002
-    random.seed(base + worker_id)
+    np.random.seed(base)  # noqa: NPY002
+    random.seed(base)

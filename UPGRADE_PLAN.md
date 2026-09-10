@@ -1,8 +1,48 @@
 # SentimentSphere v2 — Audit & Upgrade Plan
 
-**Status:** proposal, not yet started
+**Status:** Phase 0 complete; implementation of Phases 1–8 started 2026-09-10.
+See the execution ledger below for current evidence. The original audit narrative
+is historical and is qualified by `PROJECT_BIBLE.md` §20.
 **Author:** Ayush Singh (plan drafted 2026-09-04)
 **Goal:** take a coursework-era multimodal emotion project from "three notebooks in folders" to something an engineer or recruiter can click, trust, and read.
+
+## Execution ledger (authoritative current status)
+
+| Phase | Status | Evidence / remaining gate |
+|---|---|---|
+| 0 | Complete, with discovered edge cases being repaired | Existing core/CLI and 56 passing tests |
+| 1 | In progress | Implement validated data inventory, frozen manifests, calibration and baseline evaluation before model claims |
+| 2–5 | Pending experiments | Implement/train/evaluate each model, then measure fusion on paired data |
+| 6–8 | Pending | Inference contracts, API, demo, containers, documentation, and CI |
+| 9 | Optional stretch, after 0–8 | Not a prerequisite for the public demo |
+
+### Corrections adopted before implementation
+
+- Accuracy thresholds are experiment targets, not results that engineering can
+  guarantee. A missed threshold must produce an honest report, not test-set tuning
+  or a fabricated completion claim.
+- Keep the frozen archive unchanged. The best text notebook actually contains an
+  eight-class single LSTM; TESS outputs contain 5,600 rows; the precise leakage
+  mechanism remains unverified. See the Bible for the full evidence corrections.
+- Frozen manifests live under tracked `manifests/`, outside ignored `data/`.
+  Text splits group normalized duplicate texts; audio splits group verified actors.
+  TESS uses two leave-one-speaker-out folds, with calibration drawn only from the
+  training speaker, never the held-out speaker.
+- Published v1 and v2 numbers must state class set, cleaning, split, and whether
+  historical training overlap is unknown. Rescoring an old model on a newly formed
+  holdout does not prove it never trained on those examples.
+- Fusion training needs out-of-fold or otherwise disjoint base-model predictions;
+  calibration and meta-learning must not consume the final test labels.
+- ONNX parity and latency are measured per architecture. Do not force unsupported
+  quantization operators or promise int8 parity within 1e-3 before measuring it.
+- Remote GPU access and public Space identity/credentials must be established.
+  Infrastructure code and local validation can proceed while these details are
+  pending; deployment is complete only after an externally verified working URL.
+- Hosting assumption corrected: HF's documentation checked on 2026-09-10 says new
+  Docker Spaces require a paid account plan, although CPU Basic has no hourly fee.
+  Eligible free personal accounts have a separate Gradio/ZeroGPU allowance. No
+  subscription or paid hardware is authorized by this plan; see
+  [current Spaces documentation](https://huggingface.co/docs/hub/spaces-overview).
 
 **Decisions already locked in:**
 

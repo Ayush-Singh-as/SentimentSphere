@@ -1,0 +1,9 @@
+name: text_tfidf_lr
+modality: text
+architecture: tfidf_lr
+dataset: text_aggregate
+manifest: manifests/text_aggregate-v1.json
+seed: 1337
+class_weight: balanced
+regularization: 4.0
+max_features: 100000
