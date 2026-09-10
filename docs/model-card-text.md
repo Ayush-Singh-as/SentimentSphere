@@ -117,6 +117,24 @@ Test set: 6,169 examples.
 The confusion matrix and reliability diagram are written to
 `reports/<run_id>/` by `make reproduce-text`.
 
+### Robustness to typos
+
+Every run sweeps the test split under seeded adjacent-character transposition,
+at increasing rates, and records the degradation from the clean baseline:
+
+| Typo rate | Accuracy | Macro F1 | Δ macro F1 | ECE |
+|---:|---:|---:|---:|---:|
+| 0.00 | 0.6387 | 0.5986 | — | 0.0200 |
+| 0.02 | 0.6213 | 0.5827 | −0.016 | 0.0160 |
+| 0.05 | 0.6035 | 0.5651 | −0.034 | 0.0147 |
+| 0.10 | 0.5798 | 0.5400 | −0.059 | 0.0151 |
+| 0.20 | 0.5121 | 0.4737 | −0.125 | 0.0205 |
+
+Degradation is gradual rather than cliff-edged, which is the character n-grams
+earning their place: a word-only model loses the whole feature when a token is
+misspelled. Note that calibration holds up across the sweep — the model does
+not become overconfident as its inputs get noisier.
+
 **Calibration was already close.** The fitted temperature of 0.987 is nearly 1,
 so this model was not badly overconfident to begin with — an expected property
 of a class-weighted linear model, and worth stating rather than presenting the

@@ -16,6 +16,7 @@ from sentimentsphere.data.splits import SplitManifest
 from sentimentsphere.eval.calibration import TemperatureScaler
 from sentimentsphere.eval.metrics import classification_metrics
 from sentimentsphere.eval.report import write_report
+from sentimentsphere.eval.robustness import text_sweep
 from sentimentsphere.inference.artifacts import (
     align_probabilities,
     register_model,
@@ -58,6 +59,14 @@ def train_text(config: TrainConfig, dataset: Dataset, settings: Settings) -> dic
         "temperature": calibration.temperature,
         "uncalibrated_metrics": classification_metrics([s.label for s in test], raw),
         "metrics": classification_metrics([s.label for s in test], calibrated),
+        "robustness": text_sweep(
+            [s.text for s in test],
+            [s.label for s in test],
+            lambda batch: calibration.transform(
+                align_probabilities(model.predict_proba(batch), model.classes_)
+            ),
+            seed=config.seed,
+        ),
     }
     directory = settings.artifacts_dir / "models" / run_id
     save_sklearn_bundle(

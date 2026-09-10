@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
+from typing import Any
+
 import numpy as np
 
 from sentimentsphere.core.types import FloatArray
+from sentimentsphere.eval.metrics import classification_metrics
 
 
 def add_noise(waveform: FloatArray, snr_db: float, seed: int = 1337) -> FloatArray:
@@ -31,3 +35,46 @@ def typo_text(text: str, probability: float = 0.05, seed: int = 1337) -> str:
             i += 1
         i += 1
     return "".join(chars)
+
+
+def text_sweep(
+    texts: Sequence[str],
+    targets: Sequence[int],
+    predict: Callable[[list[str]], Any],
+    *,
+    levels: Sequence[float] = (0.0, 0.02, 0.05, 0.10, 0.20),
+    seed: int = 1337,
+) -> dict[str, Any]:
+    """Score a text head under increasing character-transposition noise.
+
+    Reported as degradation from the clean baseline, because the absolute
+    number at a given typo rate means little on its own.
+    """
+    if not texts or len(texts) != len(targets):
+        raise ValueError("texts and targets must be nonempty and the same length")
+    results = []
+    baseline: float | None = None
+    for level in levels:
+        perturbed = (
+            list(texts)
+            if not level
+            # Vary the seed per item so every string is not perturbed identically.
+            else [typo_text(t, level, seed=seed + i) for i, t in enumerate(texts)]
+        )
+        metrics = classification_metrics(targets, predict(perturbed))
+        if baseline is None:
+            baseline = metrics["macro_f1"]
+        results.append(
+            {
+                "typo_probability": level,
+                "accuracy": metrics["accuracy"],
+                "macro_f1": metrics["macro_f1"],
+                "ece": metrics["ece"],
+                "macro_f1_delta": metrics["macro_f1"] - baseline,
+            }
+        )
+    return {
+        "perturbation": "adjacent-character transposition, seeded per item",
+        "samples": len(texts),
+        "levels": results,
+    }

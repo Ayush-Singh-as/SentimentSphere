@@ -70,6 +70,17 @@ Per class, on the same split:
 | surprise | 0.572 | 803 |
 | disgust | 0.381 | 171 |
 
+Every run also sweeps the test split under seeded typo noise, reported as
+degradation from the clean baseline:
+
+| Typo rate | 0.00 | 0.02 | 0.05 | 0.10 | 0.20 |
+|---|---:|---:|---:|---:|---:|
+| Macro F1 | 0.599 | 0.583 | 0.565 | 0.540 | 0.474 |
+| Δ | — | −0.016 | −0.034 | −0.059 | −0.125 |
+
+Gradual, not cliff-edged — the character n-grams are what make that true, and
+calibration holds across the sweep.
+
 **Why this is not directly comparable to v1's 71.55%.** That figure was eight
 classes, scored on a split that retained exact duplicates, using a model whose
 training membership is unknown. This one is seven classes on a deduplicated,
