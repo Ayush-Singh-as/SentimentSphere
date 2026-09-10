@@ -50,12 +50,37 @@ def test_info_json():
     assert "python_version" in result.output
 
 
-def test_unimplemented_commands_exit_nonzero():
+def test_commands_that_cannot_work_fail_loudly(tmp_path, monkeypatch):
     """A command that cannot do its job must fail loudly.
 
     v1's speech app printed an error for missing weights and then predicted with
-    randomly initialised ones. Exit code 2 here is the opposite of that.
+    randomly initialised ones. A nonzero exit here is the opposite of that.
     """
-    for cmd in ("data", "eval", "train", "predict", "serve"):
-        result = runner.invoke(app, [cmd])
-        assert result.exit_code == 2, f"sphere {cmd} should exit 2 until implemented"
+    monkeypatch.chdir(tmp_path)  # no data, no artifacts, no configs
+    for argv in (
+        ["data", "--dataset", "tess"],
+        ["eval", "--baseline"],
+        ["train", "--config", "absent.yaml"],
+        ["predict", "--text", "hello"],
+    ):
+        result = runner.invoke(app, argv)
+        assert result.exit_code != 0, f"sphere {' '.join(argv)} should not report success"
+
+
+def test_required_options_are_enforced():
+    """Missing --config / --text is a usage error, not a silent no-op."""
+    for cmd in ("train", "predict"):
+        assert runner.invoke(app, [cmd]).exit_code == 2
+
+
+def test_eval_without_baseline_explains_itself():
+    result = runner.invoke(app, ["eval"])
+    assert result.exit_code == 2
+    assert "--baseline" in result.output
+
+
+def test_unknown_dataset_exits_one(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["data", "--dataset", "not_a_dataset"])
+    assert result.exit_code == 1
+    assert "unavailable" in result.output

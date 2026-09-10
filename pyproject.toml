@@ -176,7 +176,7 @@ module = [
   "sklearn.*", "lightgbm.*", "gradio.*", "wandb.*", "transformers.*",
   "audiomentations.*", "albumentations.*", "tensorflow.*", "tf_keras.*",
   "torch.*", "torchaudio.*", "torchvision.*", "neattext.*",
-  "joblib.*", "scipy.*", "matplotlib.*", "h5py.*",
+  "joblib.*", "scipy.*", "matplotlib.*", "h5py.*", "uvicorn.*",
 ]
 ignore_missing_imports = true
 
