@@ -76,8 +76,8 @@ check: lint typecheck test  ## Everything CI enforces
 # Data
 # --------------------------------------------------------------------------- #
 .PHONY: data
-data:  ## Download + checksum every dataset (Phase 1)
-	$(PY) sphere data
+data:  ## Inventory the text corpus and freeze its split manifest
+	$(PY) sphere data --dataset text_aggregate
 
 .PHONY: data-status
 data-status:  ## Report which datasets are present locally
@@ -94,29 +94,32 @@ data-status:  ## Report which datasets are present locally
 # Train / evaluate
 # --------------------------------------------------------------------------- #
 .PHONY: eval-baseline
-eval-baseline:  ## Score every v1 artifact through the v2 harness (Phase 1)
-	$(PY) sphere eval --baseline --all
+eval-baseline:  ## Score every v1 artifact through the v2 harness (needs artifacts/v1)
+	$(PY) sphere eval --baseline
 
-.PHONY: train-text train-audio train-vision train-fusion
-train-text:  ## Fine-tune the text head
-	$(PY) sphere train --config configs/text/deberta_v3_base.yaml
-train-audio:  ## Fine-tune the speech head
-	$(PY) sphere train --config configs/audio/wavlm_large.yaml
-train-vision:  ## Fine-tune the face head
-	$(PY) sphere train --config configs/vision/convnext_tiny.yaml
-train-fusion:  ## Fit the fusion meta-classifier
-	$(PY) sphere train --config configs/fusion/meta_lr.yaml
+.PHONY: train-text
+train-text:  ## Train the text baseline head
+	$(PY) sphere train --config configs/text/tfidf_lr.yaml
 
-.PHONY: reports
-reports:  ## Regenerate every figure and table in reports/
-	$(PY) sphere eval --all --write-reports
+# train-audio / train-vision / train-fusion are deliberately absent: those heads
+# are not implemented and their corpora are not acquired. A target that cannot
+# work is worse than no target — see UPGRADE_PLAN.md phases 3-5.
+
+.PHONY: reproduce-text
+reproduce-text:  ## Regenerate the reported text metrics from the frozen split
+	$(PY) sphere data --dataset text_aggregate
+	$(PY) sphere train --config configs/text/tfidf_lr.yaml
+
+.PHONY: latency
+latency:  ## Measure API latency into reports/latency.json
+	$(PY) python scripts/measure_latency.py
 
 # --------------------------------------------------------------------------- #
 # Serve / demo
 # --------------------------------------------------------------------------- #
 .PHONY: serve
 serve:  ## Run the FastAPI inference server on :8000
-	$(PY) uvicorn sentimentsphere.serving.api:app --reload --port 8000
+	$(PY) sphere serve --port 8000
 
 .PHONY: demo
 demo:  ## Run the Gradio app locally (same code as the HF Space)
