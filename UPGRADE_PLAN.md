@@ -1,20 +1,54 @@
 # SentimentSphere v2 — Audit & Upgrade Plan
 
-**Status:** Phase 0 complete; implementation of Phases 1–8 started 2026-09-10.
-See the execution ledger below for current evidence. The original audit narrative
-is historical and is qualified by `PROJECT_BIBLE.md` §20.
+**Status:** Phases 0, 1, 6, 7 and 8 are implemented and verified for the text
+modality. Phase 2 has a trained, calibrated baseline; its DeBERTa escalation and
+all of Phases 3–5 are **blocked on inputs that are not present** — see the
+ledger. The original audit narrative is historical and is qualified by
+`PROJECT_BIBLE.md` §20.
 **Author:** Ayush Singh (plan drafted 2026-09-04)
 **Goal:** take a coursework-era multimodal emotion project from "three notebooks in folders" to something an engineer or recruiter can click, trust, and read.
 
 ## Execution ledger (authoritative current status)
 
+Last verified 2026-09-10 on commit `543c585`: 209 tests pass, 91% coverage,
+Ruff and strict mypy clean, docs build under `--strict`, the Space image builds
+and serves, and `make reproduce-text` reproduces the metrics below exactly.
+
 | Phase | Status | Evidence / remaining gate |
 |---|---|---|
-| 0 | Complete, with discovered edge cases being repaired | Existing core/CLI and 56 passing tests |
-| 1 | In progress | Implement validated data inventory, frozen manifests, calibration and baseline evaluation before model claims |
-| 2–5 | Pending experiments | Implement/train/evaluate each model, then measure fusion on paired data |
-| 6–8 | Pending | Inference contracts, API, demo, containers, documentation, and CI |
-| 9 | Optional stretch, after 0–8 | Not a prerequisite for the public demo |
+| 0 Foundation | **Complete** | Core, CLI, seeding, provenance. The four defects the Bible §20.1 recorded (short SHA, negative index, hash-seed report, untracked-file provenance) are repaired and tested |
+| 1 Harness | **Complete** | Validated configs and probability contracts; frozen fingerprinted manifests; metrics with ECE and zero-support disclosure; temperature calibration; SVG reports; robustness sweep. Leakage is asserted in CI, not promised |
+| 1.4 v1 rescore | **Implemented, not run** | `sphere eval --baseline` works and exits nonzero when nothing can be read. `artifacts/v1/*` are not present on this machine, so no v1 number has been reproduced here |
+| 2 Text | **Baseline complete; escalation blocked** | TF-IDF+LR trained, calibrated, registered, served. Macro F1 0.599 / accuracy 0.639 / ECE 0.020 on 6,169 frozen test rows. DeBERTa needs the GPU host, which is still pending |
+| 3 Speech | **Blocked — no data** | TESS/RAVDESS/CREMA-D/SAVEE are absent locally. Loaders, strict filename parsing, actor grouping and TESS LOSO splitting are implemented and unit-tested against synthetic corpora |
+| 4 Face | **Blocked — no data** | FER-2013 needs Kaggle credentials. Nothing implemented beyond the label map |
+| 5 Fusion | **Blocked** | Needs MELD plus at least two trained heads |
+| 6 Serving | **Complete** | FastAPI with typed errors, request IDs, rate limiting, warm-up, 503 for absent models and a declared 501 for untrained modalities. Text p95 8.6 ms against a 2 s budget |
+| 7 Demo & docs | **Complete for what exists** | Gradio Space + Dockerfile, verified building and serving HTTP 200. README, model card, ADRs, mkdocs site. Unbuilt tabs say they are unbuilt |
+| 7 Deployment | **Blocked — no credentials** | No HF account, Space id, or token has been supplied, so nothing is published. `docs/deployment-setup.md` states what is needed |
+| 8 Rigor | **Complete** | 209 tests, 91% coverage against an 80% CI gate, golden contracts, Docker build+smoke in CI, matrix interpreter assertion, manifest-immutability check |
+| 9 Stretch | Not started | Not a prerequisite |
+
+**What "blocked" means here.** Phases 3–5 are blocked on corpora and credentials
+that this environment does not have, not on unwritten code or unmade decisions.
+Nothing has been faked to fill the gap: absent models return 503, unbuilt demo
+tabs say so, and no speech, face, or fusion metric is claimed anywhere.
+
+### Corrections to the plan, adopted during implementation
+
+- **`make reports` and `sphere eval --all --write-reports` are removed.** Reports
+  are written by the run that produces them, so a separate regeneration command
+  would either re-run training or render stale numbers.
+- **`train-audio` / `train-vision` / `train-fusion` Make targets are removed**
+  rather than left pointing at configs that do not exist.
+- **Phase 6's ONNX int8 export is deferred.** The plan specified it so the free
+  CPU tier would feel instant; the shipped head is a sklearn linear model at
+  p95 8.6 ms, so exporting it would add a format, a runtime dependency and a
+  parity test to make a 9 ms path faster. It becomes worthwhile with the first
+  transformer head, and the parity target should be measured then rather than
+  promised now.
+- **Demo phase numbering:** the README's "Phase 8" and the plan's "Phase 7" for
+  the demo referred to the same work. It is Phase 7 throughout.
 
 ### Corrections adopted before implementation
 
