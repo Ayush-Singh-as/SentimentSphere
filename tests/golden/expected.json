@@ -1,0 +1,28 @@
+{
+  "canonical": [
+    "anger",
+    "disgust",
+    "fear",
+    "joy",
+    "neutral",
+    "sadness",
+    "surprise"
+  ],
+  "clean_text": {
+    "  hello  \n world  ": "hello world",
+    "I  am\tHERE": "I am HERE",
+    "caf\u00e9": "caf\u00e9"
+  },
+  "manifest_fingerprints": {
+    "tess-loso-oaf-v1": "7bc0d6af20150ee8a8a9b4157c287819f161f8f6f449a7f25f281a893e6f4170",
+    "tess-loso-yaf-v1": "3deef8443489eb7b2788488c5f51402b2aa5d46cf88bfc9c958aca13b76cdcbe",
+    "text_aggregate-v1": "d90bd359fd49f36e78247c6c8bafe16d8db33bf0e1286947e03fd81b0861bdd3"
+  },
+  "source_maps_digest": "21993a1ca4defd7679eb306b5b28f0b4ac9a53031438fabda1094916113c4301",
+  "text_identities": {
+    "  spaced   out  ": "b0399288d6f3a476b26b3e014f6aa85a005cd1d314281103a5f0e602f6c36e30",
+    "I am THRILLED!": "a712eeaadd949779e172776314219c0cb8665fea854f052450d471956643743e",
+    "caf\u00e9": "850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e",
+    "hello world": "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+  }
+}

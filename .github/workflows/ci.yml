@@ -32,13 +32,24 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      # --python pins the interpreter explicitly: `uv python install` only makes
+      # a version available, it does not select it for the sync.
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --python ${{ matrix.python-version }} --extra dev --extra baseline --extra serving --extra demo
+
+      - name: Confirm the matrix interpreter is the one in use
+        run: |
+          ACTUAL=$(uv run python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+          if [ "$ACTUAL" != "${{ matrix.python-version }}" ]; then
+            echo "::error::expected Python ${{ matrix.python-version }}, got $ACTUAL"
+            exit 1
+          fi
+          echo "running on Python $ACTUAL"
 
       - name: Lint
         run: |
-          uv run ruff check src tests
-          uv run ruff format --check src tests
+          uv run ruff check src tests apps scripts
+          uv run ruff format --check src tests apps scripts
 
       - name: Type-check (strict on src/)
         # mypy targets 3.12 (see [tool.mypy] in pyproject.toml for why), so
@@ -46,11 +57,14 @@ jobs:
         if: matrix.python-version == '3.12'
         run: uv run mypy src
 
+      # --cov-fail-under is the Phase 8 gate. The serving/demo extras are
+      # installed above so those suites actually run rather than skipping.
       - name: Tests
         run: |
           uv run pytest \
             -m "not needs_data and not needs_artifacts and not gpu" \
-            --cov --cov-report=xml --cov-report=term-missing
+            --cov --cov-report=xml --cov-report=term-missing \
+            --cov-fail-under=80
 
       - name: Smoke-test the CLI
         run: |
@@ -59,12 +73,48 @@ jobs:
           uv run sphere labels --source tess
           uv run sphere info --json
 
+      # End-to-end on the real tracked corpus: freeze the split, train and
+      # calibrate the head, then predict through the registered artifact. This
+      # is what would have caught v1's dead model path.
+      - name: Reproduce the text baseline end to end
+        run: |
+          uv run sphere data --dataset text_aggregate
+          uv run sphere train --config configs/text/tfidf_lr.yaml
+          uv run sphere predict --text "I am thrilled with how this turned out" --json
+          uv run python scripts/measure_latency.py --runs 50
+
+      - name: Confirm the frozen manifest was not modified
+        run: git diff --exit-code -- manifests/
+
       - name: Upload coverage
         if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.xml
+
+  docker:
+    name: build the Space image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t sentimentsphere:ci -f apps/space/Dockerfile .
+      - name: Smoke-run the demo
+        run: |
+          docker run -d --name demo -p 7860:7860 sentimentsphere:ci
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:7860/ >/dev/null 2>&1; then
+              echo "demo answered after ${i}s"
+              docker rm -f demo
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::the demo container never served a response"
+          docker logs demo
+          docker rm -f demo
+          exit 1
 
   hygiene:
     name: repo hygiene
